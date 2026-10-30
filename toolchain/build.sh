@@ -14,7 +14,7 @@ JOBS="$(nproc)"
 
 # Host-side C++ flags. A new host GCC defaults to C++20, which breaks
 # GCC 14.2's bundled libcody (u8"" literals became char8_t).
-HOST_CXXFLAGS="-g -O2 -std=gnu++17"
+HOST_CXXFLAGS="-g -O2 -std=gnu++11"
 
 # ---- ask: target ----
 echo "Which target?"
