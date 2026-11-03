@@ -51,7 +51,8 @@ void Terminal::ScrollContentDown() {
   if (this->above.Empty() or this->below.Full())
     return;
   VGA::Line incoming;
-  this->above.Pop(&incoming);
+  if (not this->above.Pop(incoming))
+    return;
   this->below.Push(VGA::scroll_content_down(incoming));
 }
 

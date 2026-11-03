@@ -10,6 +10,7 @@ template <typename T, usize N> struct Ring {
   usize end = 0;
 
   bool Empty() const { return start == end; }
+  // Capacity for Full() is N-1; Push silently drops the oldest entry.
   bool Full() const { return (end + 1) % N == start; }
 
   void Push(const T &v) {
@@ -19,11 +20,13 @@ template <typename T, usize N> struct Ring {
       start = (start + 1) % N;
   }
 
-  T *Pop(T *out = NULL) {
+  // Pops the newest element. Same shape as Stack::Pop so callers can use both.
+  bool Pop(T &out) {
     if (Empty())
-      return nullptr;
+      return false;
     end = (end + N - 1) % N;
-    return & data[end];
+    out = data[end];
+    return true;
   }
 
   T *Peek() const {
