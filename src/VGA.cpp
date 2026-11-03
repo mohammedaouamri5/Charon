@@ -314,7 +314,10 @@ void put_buffer(const u16 *src, Rect area) {
   }
 }
 
-void snap_shot(u16 *buffer, Rect area = {{0, 0}, {WIDTH, HEIGHT}}) {
+void snap_shot(u16 *buffer, Rect area) {
+  if (buffer == nullptr) // TODO : panic once we have one
+    return;
+
   for (usize y = 0; y < area.size.height; y++) {
     for (usize x = 0; x < area.size.width; x++) {
       buffer[y * area.size.width + x] =
@@ -464,6 +467,9 @@ void set_blink(bool enable) {
   outb(0x3C0, 0x10 | 0x20); // select register 0x10, keep the palette enabled
   u8 value = inb(0x3C1);    // read current value
   outb(0x3C0, (value & 0xF7) | (enable ? 0x08 : 0x00)); // write back
+
+  inb(0x3DA);        // reset the flip-flop again
+  outb(0x3C0, 0x20); // palette address source back to the video hardware
 }
 
 } // namespace mode

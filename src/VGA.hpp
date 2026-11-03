@@ -110,10 +110,7 @@ void fill_rect(u16 entry, Rect area = {{0, 0}, {WIDTH, HEIGHT}});
 // safe). Scroll = move_rect({{0,1},{WIDTH,HEIGHT-1}}, {0,0}) + fill last row.
 void move_rect(Rect src, Point dest);
 
-Line scroll_up();
-Line scroll_down();
-
-void snap_shot(u16 *buffer, Rect area);
+void snap_shot(u16 *buffer, Rect area = {{0, 0}, {WIDTH, HEIGHT}});
 
 // Copy a row-major array of entries (area.size.width * area.size.height of
 // them) onto the screen at `area`.
