@@ -6,13 +6,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # writes build/compile_commands.json
 
-# every .cpp/.s under src/ is picked up; new files are noticed on rebuild
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-    ${CMAKE_SOURCE_DIR}/src/*.cpp
-    ${CMAKE_SOURCE_DIR}/src/*.s)
+# Every .cpp/.s/.S under src/ is picked up; new files are noticed on rebuild.
+# .s files are assembled as-is (GAS syntax), .S files go through the C
+# preprocessor first. Both end up as normal objects on the link line.
+file(GLOB_RECURSE CXX_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/*.cpp)
 
-add_executable(charon ${SOURCES})
-set_target_properties(charon PROPERTIES OUTPUT_NAME charon SUFFIX ".bin")
+file(GLOB_RECURSE ASM_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_SOURCE_DIR}/src/*.s
+    ${CMAKE_SOURCE_DIR}/src/*.S)
+
+add_executable(charon ${CXX_SOURCES} ${ASM_SOURCES})
+set_target_properties(charon PROPERTIES
+    OUTPUT_NAME charon
+    SUFFIX ".bin"
+    LINKER_LANGUAGE CXX)   # use i686-elf-g++ to link the C++ + asm objects
 
 target_include_directories(charon PRIVATE src)
 
