@@ -2,9 +2,6 @@
 #include "VGA.hpp"
 #include "std/types.h"
 #include "terminal.hpp"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
 #ifdef CHARON_STRESS
 // Fill the screen fast, exercise wrap + scroll + the CP437 range.

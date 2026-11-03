@@ -1,15 +1,6 @@
 #include "terminal.hpp"
 #include "VGA.hpp"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-
-size_t strlen(const char *str) {
-  size_t len = 0;
-  while (str[len])
-    len++;
-  return len;
-}
+#include "std/string.h"
 
 // A row of blanks in the given attribute (used when new output scrolls in).
 static VGA::Line blankLine(u8 attribute) {
@@ -139,11 +130,11 @@ void Terminal::Flush() {
   this->Clear();
 }
 
-void Terminal::Write(const char *data, size_t size) {
-  for (size_t i = 0; i < size; i++)
+void Terminal::Write(const char *data, usize size) {
+  for (usize i = 0; i < size; i++)
     this->PutChar(data[i]); // PutChar keeps the hardware cursor in sync
 }
 
 void Terminal::WriteString(const char *data) {
-  this->Write(data, strlen(data));
+  this->Write(data, string::length(data));
 }

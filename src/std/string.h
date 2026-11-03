@@ -5,9 +5,8 @@
 
 namespace string {
 
-i8 length(const char *);
+usize length(const char *s);
 
-
-}
+} // namespace string
 
 #endif
