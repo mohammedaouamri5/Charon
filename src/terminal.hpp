@@ -26,8 +26,8 @@ struct Terminal {
   void SetAttribute(VGA::Color fg, VGA::Color bg);
   void SetPosition(u32 col, u32 row);
 
-  void Activate(); // TODO: blit shadow, sync cursor
-  void Deactivate();
+  void Activate();   // take the screen and show the cursor
+  void Deactivate(); // release the screen and hide the cursor
 
   void ScrollContentUp();   // view toward newer text
   void ScrollContentDown(); // view toward older text
@@ -39,6 +39,7 @@ private:
 
   void snapToLive();
   void scrollLive();
+  void syncCursor();
 };
 
 #endif

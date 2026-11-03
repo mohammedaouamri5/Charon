@@ -21,6 +21,7 @@ static VGA::Line blankLine(u8 attribute) {
 
 void Terminal::Init(void) {
   this->attribute = VGA::DEFAULT_ATTRIBUTE;
+  VGA::cursor::init(); // known shape + visible before the first Clear
   this->Clear();
   this->Activate();
 }
@@ -108,9 +109,23 @@ void Terminal::PutChar(char c) {
     this->scrollLive();
     this->row = VGA::HEIGHT - 1;
   }
+  this->syncCursor();
 }
 
-void Terminal::Activate() { this->active = true; }
+void Terminal::Activate() {
+  this->active = true;
+  this->syncCursor();
+  VGA::cursor::show();
+}
+
+void Terminal::Deactivate() {
+  this->active = false;
+  VGA::cursor::hide(); // TODO : restore the screen once multiple terminals exist
+}
+
+void Terminal::syncCursor() {
+  VGA::cursor::move_to({this->column, this->row});
+}
 
 void Terminal::Clear() {
   VGA::clear(VGA::make_entry(' ', this->attribute));
@@ -126,8 +141,7 @@ void Terminal::Flush() {
 
 void Terminal::Write(const char *data, size_t size) {
   for (size_t i = 0; i < size; i++)
-    this->PutChar(data[i]);
-  VGA::cursor::move_to({this->column, this->row}); // once per write
+    this->PutChar(data[i]); // PutChar keeps the hardware cursor in sync
 }
 
 void Terminal::WriteString(const char *data) {
