@@ -41,12 +41,6 @@ set_target_properties(charon PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/link.ld
 
 target_link_libraries(charon PRIVATE gcc)   # -lgcc, placed after the objects
 
-# ---- optional test: flood the screen to exercise wrap + scroll ----
-option(CHARON_STRESS "Enable the scrolling stress test in kernel_main" OFF)
-if(CHARON_STRESS)
-    target_compile_definitions(charon PRIVATE CHARON_STRESS)
-endif()
-
 # ---- ISO: copies iso/ (with boot/grub/grub.cfg) and adds the kernel ----
 add_custom_target(iso
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_BINARY_DIR}/isodir
