@@ -1,10 +1,9 @@
-
 #include "terminal.hpp"
 #include "VGA.hpp"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-/* Hardware text mode color constants. */
+
 size_t strlen(const char *str) {
   size_t len = 0;
   while (str[len])
@@ -12,45 +11,124 @@ size_t strlen(const char *str) {
   return len;
 }
 
-void Terminal::init(void) {
-  this->row = 0;
-  this->column = 0;
-  this->color = VGA_ENTRY_COLOR(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK);
-  this->buffer = (uint16_t *)VGA_MEMORY;
-  for (size_t y = 0; y < VGA_HEIGHT; y++) {
-    for (size_t x = 0; x < VGA_WIDTH; x++) {
-      const size_t index = y * VGA_WIDTH + x;
-      this->buffer[index] = VGA_ENTRY('+', this->color);
-    }
-  }
-}
-void Terminal::set_color(uint8_t color) { this->color = color; }
-
-void Terminal::put_entry_at(char c, uint8_t color, size_t x, size_t y) {
-  const size_t index = y * VGA_WIDTH + x;
-  this->buffer[index] = VGA_ENTRY(c, color);
+// A row of blanks in the given attribute (used when new output scrolls in).
+static VGA::Line blankLine(u8 attribute) {
+  VGA::Line l;
+  for (usize i = 0; i < VGA::WIDTH; i++)
+    l.entry[i] = VGA::make_entry(' ', attribute);
+  return l;
 }
 
-void Terminal::put_char(char c) {
-  if (c == '\n') {
-    this->row += 1;
+void Terminal::Init(void) {
+  this->attribute = VGA::DEFAULT_ATTRIBUTE;
+  this->Clear();
+  this->Activate();
+}
+
+void Terminal::SetPosition(u32 col, u32 row) {
+  // TODO: panic instead of clamping once panic exists
+  this->column = col < VGA::WIDTH ? col : VGA::WIDTH - 1;
+  this->row = row < VGA::HEIGHT ? row : VGA::HEIGHT - 1;
+  VGA::cursor::move_to({this->column, this->row});
+}
+
+void Terminal::SetAttribute(VGA::Color fg, VGA::Color bg) {
+  this->attribute = VGA::make_attribute(fg, bg);
+}
+
+// ---- history browsing -------------------------------------------------
+
+// View toward newer text: content moves up.
+void Terminal::ScrollContentUp() {
+  VGA::Line incoming;
+  if (not this->below.Pop(incoming))
+    return; // already on the live screen
+  this->above.Push(VGA::scroll_content_up(incoming));
+}
+
+// View toward older text: content moves down.
+void Terminal::ScrollContentDown() {
+  if (this->above.Empty() or this->below.Full())
+    return;
+  VGA::Line incoming;
+  this->above.Pop(&incoming);
+  this->below.Push(VGA::scroll_content_down(incoming));
+}
+
+void Terminal::snapToLive() {
+  while (not this->below.Empty())
+    this->ScrollContentUp();
+}
+
+// Live output: the top row becomes history, a blank row enters at the bottom.
+void Terminal::scrollLive() {
+  this->snapToLive();
+  this->above.Push(VGA::scroll_content_up(blankLine(this->attribute)));
+}
+
+// ---- output -----------------------------------------------------------
+
+void Terminal::PutChar(char c) {
+  this->snapToLive(); // new output while browsing: go back to live first
+
+  switch (c) {
+  case '\n':
     this->column = 0;
-  } else {
-    this->put_entry_at(c, this->color, this->column, this->row);
-
-    if (++this->column == VGA_WIDTH) {
-      this->column = 0;
-      if (++this->row == VGA_HEIGHT)
-        this->row = 0;
+    this->row++;
+    break;
+  case '\r':
+    this->column = 0;
+    break;
+  case '\t': {
+    u32 next = (this->column + 8) & ~7u;
+    while (this->column < next and this->column < VGA::WIDTH) {
+      VGA::put_char({this->column, this->row}, ' ', this->attribute);
+      this->column++;
     }
+    break;
+  }
+  case '\b': // cursor only; erasing is the line discipline's job later
+    if (this->column > 0)
+      this->column--;
+    break;
+  default:
+    if ((u8)c < 0x20)
+      break; // skip other control characters
+    VGA::put_char({this->column, this->row}, c, this->attribute);
+    this->column++;
+    break;
+  }
+
+  if (this->column >= VGA::WIDTH) {
+    this->column = 0;
+    this->row++;
+  }
+  if (this->row >= VGA::HEIGHT) {
+    this->scrollLive();
+    this->row = VGA::HEIGHT - 1;
   }
 }
 
-void Terminal::write(const char *data, size_t size) {
-  for (size_t i = 0; i < size; i++)
-    this->put_char(data[i]);
+void Terminal::Activate() { this->active = true; }
+
+void Terminal::Clear() {
+  VGA::clear(VGA::make_entry(' ', this->attribute));
+  this->SetPosition(0, 0);
 }
 
-void Terminal::write_string(const char *data) {
-  this->write(data, strlen(data));
+// Remove everything: history, browse state and screen.
+void Terminal::Flush() {
+  this->above.Clear();
+  this->below.Clear();
+  this->Clear();
+}
+
+void Terminal::Write(const char *data, size_t size) {
+  for (size_t i = 0; i < size; i++)
+    this->PutChar(data[i]);
+  VGA::cursor::move_to({this->column, this->row}); // once per write
+}
+
+void Terminal::WriteString(const char *data) {
+  this->Write(data, strlen(data));
 }

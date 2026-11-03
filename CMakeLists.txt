@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # writes build/compile_commands.json
 # .s files are assembled as-is (GAS syntax), .S files go through the C
 # preprocessor first. Both end up as normal objects on the link line.
 file(GLOB_RECURSE CXX_SOURCES CONFIGURE_DEPENDS
-    ${CMAKE_SOURCE_DIR}/src/*.cpp)
+    ${CMAKE_SOURCE_DIR}/src/**.cpp)
 
 file(GLOB_RECURSE ASM_SOURCES CONFIGURE_DEPENDS
     ${CMAKE_SOURCE_DIR}/src/*.s

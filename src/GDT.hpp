@@ -1,8 +1,8 @@
 #ifndef GDT_HPP
 #define GDT_HPP
 
-#include <stdint.h>
 
+#include "std/types.h"
 struct GTD_ptr;
 
 #ifdef __cplusplus
@@ -17,8 +17,8 @@ void gdt_flush(struct GTD_ptr *gdtr);
 #endif
 
 struct __attribute__((packed)) GTD_ptr {
-  uint16_t limit; // size of the table in bytes - 1
-  uint32_t base;  // address of the table
+  u16 limit; // size of the table in bytes - 1
+  u32 base;  // address of the table
   void init(void);
 };
 
