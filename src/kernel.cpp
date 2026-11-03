@@ -1,5 +1,6 @@
 #include "GDT.hpp"
 #include "VGA.hpp"
+#include "VGA_themes.hpp"
 #include "std/types.h"
 #include "terminal.hpp"
 
@@ -12,6 +13,7 @@ void kernel_main(void) {
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();
+  VGA::DAC::set_palette(0, VGA::DAC::THEMES::monokai_palette, 16);
 
   terminal.WriteString("[ INFO ] Hello, World!\n"
                        "[ INFO ] This is my first bootable kernel\n"
