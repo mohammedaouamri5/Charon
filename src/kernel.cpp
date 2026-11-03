@@ -1,4 +1,3 @@
-
 #include "GDT.hpp"
 #include "VGA.hpp"
 #include "std/types.h"
@@ -7,6 +6,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef CHARON_STRESS
+// Fill the screen fast, exercise wrap + scroll + the CP437 range.
+static void stressTest(Terminal &terminal) {
+  for (u32 i = 0; i < 4000; i++) {
+    char c;
+    if (i % 0xFF == 0)
+      c = (char)(0x41 + (i >> 8));
+    else
+      c = (char)(0x61 + (i % 0xFF));
+    terminal.PutChar(c);
+  }
+}
+#endif
+
 extern "C" {
 void kernel_main(void) {
   /* Initialize terminal interface */
@@ -14,21 +27,20 @@ void kernel_main(void) {
   GTD_ptr gtd_ptr;
   gtd_ptr.init();
 
-  Terminal terminal;
+  Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();
-  /* Newline support is left as an exercise. */
 
   terminal.WriteString("[ INFO ] Hello, World!\n"
-                        "[ INFO ] This is my first bootable kernal\n"
-                        "[ INFO ] It called Charon o_o");
-  for (u16 i = 0;; i++) {
-    if (i % 0xFF == 0) {
-      char c = 0x41 + (i >> 8);
-      terminal.PutChar(c);
-    } else {
-      char c = 0x61 + (i % 0xFF);
-      terminal.PutChar(c);
-    }
-  }
+                       "[ INFO ] This is my first bootable kernel\n"
+                       "[ INFO ] It called Charon o_o\n");
+
+#ifdef CHARON_STRESS
+  stressTest(terminal);
+#endif
+
+  /* Nothing else to do yet: stop the CPU (interrupts are still disabled). */
+  asm volatile("cli");
+  for (;;)
+    asm volatile("hlt");
 }
 }

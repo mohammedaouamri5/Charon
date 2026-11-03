@@ -34,8 +34,7 @@ struct Terminal {
 
 private:
   u8 attribute = VGA::DEFAULT_ATTRIBUTE;
-  bool active = false;                  // is this one on screen?
-  u16 shadow[VGA::WIDTH * VGA::HEIGHT]; // TODO: not used yet
+  bool active = false; // is this one on screen?
 
   void snapToLive();
   void scrollLive();
