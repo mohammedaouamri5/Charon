@@ -21,8 +21,8 @@ extern "C" {
 void kernel_main(void) {
   /* Initialize terminal interface */
 
-  GTD_ptr gtd_ptr;
-  gtd_ptr.init();
+  GDT_ptr gdt;
+  gdt.init();
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();

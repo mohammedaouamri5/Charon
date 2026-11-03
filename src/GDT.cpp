@@ -16,12 +16,9 @@ inline u64 gdt[5] = {
 };
 
 
-void GTD_ptr::init() {
+void GDT_ptr::init() {
 
   this->limit = sizeof(gdt) - 1; // 5 * 8 - 1 = 39
   this->base = (u32)&gdt;
   gdt_flush(this); // assembly routine in GDT.s
-}
-
-inline void gdt_init(void) {
 }
