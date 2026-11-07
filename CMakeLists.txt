@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(Charon LANGUAGES C CXX ASM)
 
+# default to a Debug build so gdb has symbols (override with Debug/Release)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -50,6 +55,12 @@ add_custom_target(iso
     DEPENDS charon
     COMMENT "Building charon.iso"
 )
+
+# ---- debugging with gdb
+add_custom_target(debug
+    COMMAND qemu-system-i386 -m 128M -kernel $<TARGET_FILE:charon>
+            -s -S
+    DEPENDS charon USES_TERMINAL)
 
 # ---- run targets ----
 add_custom_target(run
