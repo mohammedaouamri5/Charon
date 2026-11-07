@@ -3,7 +3,8 @@
 Charon is a hobby operating system for 32-bit x86, written in modern C++20 with
 a little GAS assembly. It boots with GRUB via the Multiboot standard and
 currently features a working VGA text-mode driver, a scrollable terminal with
-history, hardware cursors and full custom color themes, plus a basic GDT.
+history, hardware cursors and full custom color themes, plus a GDT, an IDT
+with exception handlers, a remapped PIC and an initialized PIT.
 
 > Charon — the ferryman of the dead in Greek mythology, carrying souls across
 > the Styx. A fitting name for software that brings a machine from firmware
@@ -15,7 +16,13 @@ history, hardware cursors and full custom color themes, plus a basic GDT.
   stack, clean entry into C++.
 - **GDT** (`src/GDT.cpp`, `src/GDT.s`) — 5-entry flat-segment table (kernel +
   user code/data) loaded via `lgdt` after `cli; jmp` segment reload.
-- **VGA text-mode driver** (`src/VGA.*`) —
+- **IDT** (`src/IDT.cpp`, `src/IDT.s`) — interrupt descriptor table with
+  diagnostic handlers for CPU exceptions (vectors 0–31): register dumps, then
+  halt.
+- **PIC & PIT** (`src/drivers/PIC.*`, `src/drivers/PIT.*`) — 8259 remapping
+  with configurable vector offsets, masking/EOI, plus timer init so the
+  machine runs with `sti; hlt` instead of a frozen CPU.
+- **VGA text-mode driver** (`src/drivers/VGA.*`) —
   - 80×25 cell buffer with rectangular ops: `put`, `fill_rect`, `move_rect`
     (memmove semantics), `snap_shot`, `put_buffer`
   - hardware CRTC cursor: shape (underline / block), position, show / hide
@@ -25,7 +32,7 @@ history, hardware cursors and full custom color themes, plus a basic GDT.
 - **Terminal** (`src/terminal.*`) — line-based terminal with scrollback:
   a `Ring` for history (older lines) and a bounded `Stack` for newer lines,
   activate / deactivate the screen, and a cursor that stays in sync.
-- **Color themes** (`src/VGA_themes.hpp`) — standard VGA, amber phosphor,
+- **Color themes** (`src/drivers/VGA_themes.hpp`) — standard VGA, amber phosphor,
   green phosphor, cyberpunk and monokai palettes, all validated at compile
   time with `static_assert` (6-bit DAC range checks). The kernel boots in
   **monokai**.
@@ -59,12 +66,17 @@ Other CMake targets: `debug` (QEMU + interrupt logs into `qemu.log`) and
 ```
 src/
 ├── boot.s            Multiboot header, 16 KiB stack, entry _start
-├── kernel.cpp        kernel_main: GDT + terminal init, hello world
+├── kernel.cpp        kernel_main: GDT + IDT + PIC + PIT init, terminal init, hello world
 ├── GDT.{hpp,cpp,s}   Flat GDT (kernel + user segments) and lgdt flush
-├── VGA.{hpp,cpp}     Text-mode driver: cells, rects, cursor, mode, DAC
-├── VGA_themes.hpp    Theme palettes (standard/amber/green/cyberpunk/monokai)
+├── IDT.{hpp,cpp,s}   Interrupt descriptor table + CPU exception handlers
 ├── terminal.{hpp,cpp}  Scrollback terminal built on the VGA driver
 ├── utile.hpp
+├── drivers/          Hardware drivers
+│   ├── CPU.hpp       CPU helpers (register info, cpuid, port I/O)
+│   ├── PIC.{hpp,cpp} 8259 PIC remap, masking, EOI
+│   ├── PIT.{hpp,cpp} Programmable interval timer
+│   ├── VGA.{hpp,cpp} Text-mode driver: cells, rects, cursor, mode, DAC
+│   └── VGA_themes.hpp  Theme palettes (standard/amber/green/cyberpunk/monokai)
 └── std/
     ├── types.h, string.{h,cpp}  Freestanding fixed-width types + strings
     └── struct/                 Ring & Stack container primitives
@@ -86,8 +98,8 @@ CMakeLists.txt       Freestanding build (C++20, no exceptions / RTTI), ISO/run t
 - [x] DAC palette programming + 5 compile-time-validated color themes
 - [x] Scrollback terminal built on `Ring`/`Stack` containers
 - [x] Freestanding std: fixed-width types, string helpers, containers
-- [ ] IDT + exception handlers (labels + register dumps for all 32 CPU faults)
-- [ ] PIC remapping & timer (PIT) — real interrupts instead of `cli; hlt`
+- [x] IDT + exception handlers (labels + register dumps for all 32 CPU faults)
+- [x] PIC remapping & timer (PIT) — real interrupts instead of `cli; hlt`
 - [ ] Keyboard driver (PS/2) + a simple shell so the terminal becomes interactive
 - [ ] Serial (COM1) port — logging that survives a triple fault
 

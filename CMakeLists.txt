@@ -27,7 +27,7 @@ set_target_properties(charon PROPERTIES
     SUFFIX ".bin"
     LINKER_LANGUAGE CXX)   # use i686-elf-g++ to link the C++ + asm objects
 
-target_include_directories(charon PRIVATE src)
+target_include_directories(charon PRIVATE src src/drivers)
 
 target_compile_options(charon PRIVATE
     -ffreestanding -Wall -Wextra

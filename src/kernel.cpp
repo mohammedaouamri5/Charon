@@ -1,4 +1,7 @@
 #include "GDT.hpp"
+#include "IDT.hpp"
+#include "PIC.hpp"
+#include "PIT.hpp"
 #include "VGA.hpp"
 #include "VGA_themes.hpp"
 #include "std/types.h"
@@ -10,6 +13,10 @@ void kernel_main(void) {
 
   GDT_ptr gdt;
   gdt.init();
+  IDT_ptr idt;
+  idt.init();
+  PIC::Remap();
+  PIT::Init();
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();
@@ -20,7 +27,7 @@ void kernel_main(void) {
                        "[ INFO ] It called Charon o_o\n");
 
   /* Nothing else to do yet: stop the CPU (interrupts are still disabled). */
-  asm volatile("cli");
+  asm volatile("sti");
   for (;;)
     asm volatile("hlt");
 }
