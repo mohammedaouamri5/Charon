@@ -1,4 +1,5 @@
 #include "GDT.hpp"
+#include "Keyboard.hpp"
 #include "IDT.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
@@ -17,6 +18,7 @@ void kernel_main(void) {
   idt.init();
   PIC::Remap();
   PIT::Init();
+  IRQ::Init(); // unmasks IRQ1 itself, like PIT does for IRQ0
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();
@@ -26,9 +28,23 @@ void kernel_main(void) {
                        "[ INFO ] This is my first bootable kernel\n"
                        "[ INFO ] It called Charon o_o\n");
 
-  /* Nothing else to do yet: stop the CPU (interrupts are still disabled). */
-  asm volatile("sti");
-  for (;;)
-    asm volatile("hlt");
+  /* Keyboard smoke test: echo every queued key event until the queue is
+     empty, then halt and wait for the next IRQ1/IRQ0 to wake us. */
+  terminal.WriteString("[ INFO ] Type! I will echo key events\n");
+  for (;;) {
+    IRQ::KeyEvent ev;
+    if (IRQ::Poll(ev)) {
+      static const char hex[] = "0123456789abcdef";
+      terminal.WriteString("[ KEY ] 0x");
+      terminal.PutChar(hex[ev.code >> 4]);
+      terminal.PutChar(hex[ev.code & 0xF]);
+      if (ev.ext)
+        terminal.WriteString(" ext");
+      terminal.WriteString(ev.pressed ? " down" : " up");
+      terminal.WriteString("\n");
+    } else {
+      asm volatile("hlt");
+    }
+  }
 }
 }

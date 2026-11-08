@@ -21,11 +21,19 @@ template <typename T, usize N> struct Ring {
   }
 
   // Pops the newest element. Same shape as Stack::Pop so callers can use both.
-  bool Pop(T &out) {
+  bool PopNew(T &out) {
     if (Empty())
       return false;
     end = (end + N - 1) % N;
     out = data[end];
+    return true;
+  }
+
+  bool PopOld(T &out) {
+    if (Empty())
+      return false;
+    out = data[start];
+    start = (start + 1) % N;
     return true;
   }
 
