@@ -1,3 +1,5 @@
+#ifndef MULTIBOOT_HPP
+#define MULTIBOOT_HPP
 #include "std/types.h"
 
 struct [[gnu::packed]] multiboot_mmap_entry {
@@ -21,8 +23,7 @@ struct [[gnu::packed]] multiboot_info {
   u32 syms[4]; // flags bit 4 (a.out) or bit 5 (ELF): symbol table info
 
   u32 mmap_length; // flags bit 6: total size of the memory map in bytes
-  multiboot_mmap_entry
-      *mmap_addr; // flags bit 6: physical address of the first map entry
+  u32 mmap_addr; // flags bit 6: physical address of the first map entry
 
   u32 drives_length; // flags bit 7: total size of the drive info in bytes
   u32 drives_addr;   // flags bit 7: physical address of the drive info
@@ -31,4 +32,4 @@ struct [[gnu::packed]] multiboot_info {
   u32 boot_loader_name; // flags bit 9: physical address of the bootloader name
                         // string
 };
-
+#endif

@@ -13,14 +13,17 @@ struct Terminal {
   u8 column = 0; // `column` in Terminal is x in VGA
   u8 row = 0;    // `row` in `Terminal` is `y` in `VGA`
 
-  Stack<VGA::Line, 20> below; // newer than the screen (only used while browsing)
-  Ring<VGA::Line, 20> above;  // older than the screen (history)
+  Stack<VGA::Line, 20>
+      below;                 // newer than the screen (only used while browsing)
+  Ring<VGA::Line, 20> above; // older than the screen (history)
 
   void Init(void);
   void Clear();
   void Flush(); // remove everything: history, browse state and screen
   void Write(const char *s, usize n);
   void WriteString(const char *s);
+  void WriteU64(u64 value, u8 base = 10);
+  void WriteHex(u64 value);
   void PutChar(char c);
 
   void SetAttribute(VGA::Color fg, VGA::Color bg);

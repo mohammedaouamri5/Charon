@@ -135,6 +135,33 @@ void Terminal::Write(const char *data, usize size) {
     this->PutChar(data[i]); // PutChar keeps the hardware cursor in sync
 }
 
+void Terminal::WriteU64(u64 value, u8 base) {
+  if (base < 2 || base > 16)
+    base = 10;
+
+  char buf[20]; // enough for u64 in base 2
+  int n = 0;
+
+  do {
+    u8 digit = value % base;
+    buf[n++] = digit < 10 ? '0' + digit : 'a' + (digit - 10);
+    value /= base;
+  } while (value != 0);
+
+  while (n > 0)
+    this->PutChar(buf[--n]);
+}
+
+void Terminal::WriteHex(u64 value) {
+  this->WriteString("0x");
+  for (int shift = 60; shift >= 0; shift -= 4) {
+    u8 digit = (value >> shift) & 0xF;
+    this->PutChar(digit < 10 ? '0' + digit : 'a' + (digit - 10));
+  }
+}
+
+
+
 void Terminal::WriteString(const char *data) {
   this->Write(data, string::length(data));
 }

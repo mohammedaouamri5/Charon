@@ -26,7 +26,7 @@ typedef __PTRDIFF_TYPE__  isize;
 #endif
 
 #ifndef NULL
-#define NULL ((void *)0)
+#define NULL nullptr 
 #endif
 
 /* Limits: unsigned */

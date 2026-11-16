@@ -1,14 +1,17 @@
 #include "kernel.hpp"
+#include "KeyLayout.hpp"
 #include "arch/x86/GDT.hpp"
 #include "arch/x86/IDT.hpp"
-#include "KeyLayout.hpp"
 #include "drivers/Keyboard.hpp"
-#include "multiboot.hpp"
 #include "drivers/PIC.hpp"
 #include "drivers/PIT.hpp"
 #include "drivers/PS2.hpp"
 #include "drivers/VGA.hpp"
 #include "drivers/VGA_themes.hpp"
+#include "mm/PMM.hpp"
+#include "multiboot.hpp"
+#include "std/struct/FixedList.hpp"
+#include "std/struct/bits.hpp"
 #include "std/types.h"
 #include "terminal.hpp"
 
@@ -24,7 +27,7 @@ static bool IsWord(const char *line, u32 len, const char *word) {
   return len == 0 && *word == '\0';
 }
 
-/* Run one finished line. */
+// trashy shell
 static void RunCommand(Terminal &terminal, const char *line, u32 len) {
   if (len == 0)
     return;
@@ -36,6 +39,65 @@ static void RunCommand(Terminal &terminal, const char *line, u32 len) {
     terminal.Flush();
     return;
   }
+  if (IsWord(line, len, "PMM-info")) {
+    const PMM::UnUsedTable *unused_frams = PMM::UnUsedList();
+    const Bitset<UNUSED_MMAP_SIZE> *unused_mask = unused_frams->GetUsed();
+
+    terminal.WriteString("------------------UNUSED-------------------\n");
+    terminal.WriteString("the bit map is\n");
+
+    for (usize i = 0; i < UNUSED_MMAP_SIZE; i++) {
+      if (!unused_mask->Test(i))
+        continue;
+
+      const PMM::UnUsedTable::Node *node = unused_frams->GetNode(i);
+      if (!node)
+        continue;
+
+      terminal.WriteString("the index : ");
+      terminal.WriteU64(i);
+      terminal.PutChar('\n');
+      terminal.WriteString("the start  : ");
+      terminal.WriteHex(node->item.start);
+      terminal.PutChar('\n');
+      terminal.WriteString("the length : ");
+      terminal.WriteU64(node->item.lenght);
+      terminal.PutChar('\n');
+    }
+
+
+
+    terminal.WriteString("-------------------USED--------------------\n");
+    const PMM::UsedTable *used_frams = PMM::UsedList();
+    const Bitset<USED_MMAP_SIZE> *used_mask = used_frams->GetUsed();
+
+    terminal.WriteString("the bit map is\n");
+    for (usize i = 0; i < UNUSED_MMAP_SIZE; i++) {
+      if (!used_mask->Test(i))
+        continue;
+      const PMM::UsedTable::Node *node = used_frams->GetNode(i);
+      if (!node)
+        continue;
+
+      terminal.WriteString("the index : ");
+      terminal.WriteU64(i);
+      terminal.PutChar('\n');
+      terminal.WriteString("the start  : ");
+      terminal.WriteHex(node->item.start);
+      terminal.PutChar('\n');
+      terminal.WriteString("the length : ");
+      terminal.WriteU64(node->item.lenght);
+      terminal.PutChar('\n');
+    }
+
+    return;
+  }
+
+  if (IsWord(line, len, "PMM-alloc-400")) {
+    PMM::Alloc(400);
+    return;
+  }
+
   if (line[0] == 'e' && line[1] == 'c' && line[2] == 'h' && line[3] == 'o') {
     const char *text = line + 4;
     u32 rest = len - 4;
@@ -47,11 +109,12 @@ static void RunCommand(Terminal &terminal, const char *line, u32 len) {
     terminal.PutChar('\n');
     return;
   }
+
   terminal.WriteString("[ ERR  ] unknown command\n");
 }
 
 extern "C" {
-void kernel_main(u16 magic, multiboot_info *p_info) {
+void kernel_main(u32 magic, multiboot_info *p_info) {
   /* Initialize terminal interface */
 
   GDT_ptr gdt;
@@ -59,6 +122,7 @@ void kernel_main(u16 magic, multiboot_info *p_info) {
   IDT_ptr idt;
   idt.init();
   // PMM
+  PMM::Init(p_info);
 
   PIC::Remap();
   PIT::Init();
