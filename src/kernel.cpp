@@ -3,6 +3,7 @@
 #include "arch/x86/IDT.hpp"
 #include "KeyLayout.hpp"
 #include "drivers/Keyboard.hpp"
+#include "multiboot.hpp"
 #include "drivers/PIC.hpp"
 #include "drivers/PIT.hpp"
 #include "drivers/PS2.hpp"
@@ -11,9 +12,7 @@
 #include "std/types.h"
 #include "terminal.hpp"
 
-static void Prompt(Terminal &terminal) {
-  terminal.WriteString("charon> ");
-}
+static void Prompt(Terminal &terminal) { terminal.WriteString("charon> "); }
 
 /* exact compare of the first len characters against a known word */
 static bool IsWord(const char *line, u32 len, const char *word) {
@@ -52,20 +51,19 @@ static void RunCommand(Terminal &terminal, const char *line, u32 len) {
 }
 
 extern "C" {
-void kernel_main(void) {
+void kernel_main(u16 magic, multiboot_info *p_info) {
   /* Initialize terminal interface */
-
-  PIT::Init();
-
 
   GDT_ptr gdt;
   gdt.init();
   IDT_ptr idt;
   idt.init();
+  // PMM
+
   PIC::Remap();
   PIT::Init();
-  u8 ps2err = PS2::Init(); // disables translation: the driver parses set-2
-  IRQ::Init(); // unmasks IRQ1 itself, like PIT does for IRQ0
+  u8 ps2err = PS2::Init();
+  Keybord::Init(); // unmasks IRQ1 itself, like PIT does for IRQ0
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
   terminal.Init();
@@ -79,16 +77,14 @@ void kernel_main(void) {
     terminal.WriteString("[ ERR  ] PS/2 init failed, keyboard may not work\n");
   }
 
-  /* Line editor: keys arrive from the IRQ queue, the main loop only
-     renders. Backspace erases, Enter submits. */
   static char line[80];
   u32 len = 0;
   bool caps = false;
 
   Prompt(terminal);
   for (;;) {
-    IRQ::KeyEvent ev;
-    if (!IRQ::Poll(ev)) {
+    Keybord::KeyEvent ev;
+    if (!Keybord::Poll(ev)) {
       asm volatile("hlt");
       continue;
     }
@@ -101,7 +97,7 @@ void kernel_main(void) {
     if (!ev.pressed) // ignore releases
       continue;
 
-    bool shift = IRQ::IsDown(0x12); // Left Shift held
+    bool shift = Keybord::IsDown(0x12); // Left Shift held
 
     if (ev.code == 0x66) { // Backspace
       if (len > 0) {

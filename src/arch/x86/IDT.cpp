@@ -1,6 +1,6 @@
 // IDT.cpp
-#include "IDT.hpp"
-#include "CPU.hpp"
+#include "arch/x86/IDT.hpp"
+#include "drivers/CPU.hpp"
 #include "std/types.h"
 
 // Fields: bits 0-15 handler low, 16-31 selector, 32-39 zero, 40-47 attributes,
@@ -16,8 +16,8 @@ inline u64 idt[256]; // zero-initialised, filled at run time
 extern "C" u32 isrStubTable[256];
 extern "C" void idtFlush(IDT_ptr *);
 
-#include "PIC.hpp"
-#include "VGA.hpp"
+#include "drivers/PIC.hpp"
+#include "drivers/VGA.hpp"
 
 IrqHandler IRQ_handlers[16]; // one slot per IRQ 0-15, zero-init: all nullptr
 

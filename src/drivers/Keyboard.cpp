@@ -50,25 +50,30 @@
 
 namespace {
 
-
-SPSCRing<IRQ::KeyEvent, 64> events;
+SPSCRing<Keybord::KeyEvent, 64> events;
 volatile bool down[2][256];
 
 void onIRQ1() {
 
-  static bool ext = false; 
-  static bool rel = false; 
+  static bool ext = false;
+  static bool rel = false;
   u8 data;
   u8 status;
   if (PS2::Pull(data, status) != PS2::Err::OK) {
     return; // empty buffer or a mouse byte: nothing keyboard-ish to do
   }
-  if (data == 0xE0) { ext = true; return; }
-  if (data == 0xF0) { rel = true; return; }
+  if (data == 0xE0) {
+    ext = true;
+    return;
+  }
+  if (data == 0xF0) {
+    rel = true;
+    return;
+  }
 
-  if (data == 0xFA || data == 0xFE || data == 0xAA ||
-      data == 0xFC || data == 0x00 || data == 0xFF) {
-    return; 
+  if (data == 0xFA || data == 0xFE || data == 0xAA || data == 0xFC ||
+      data == 0x00 || data == 0xFF) {
+    return;
   }
   bool pressed = !rel;
   down[ext][data] = pressed;
@@ -79,11 +84,9 @@ void onIRQ1() {
 
 } // namespace
 
-namespace IRQ {
+namespace Keybord {
 
-void Init() {
-  InstallIRQ(1, onIRQ1);
-}
+void Init() { InstallIRQ(1, onIRQ1); }
 
 bool Poll(KeyEvent &out) { return events.Pop(out); }
 
@@ -91,4 +94,4 @@ bool IsDown(u8 code, bool ext) {
   return down[ext][code]; // one byte read: atomic
 }
 
-} // namespace IRQ
+} // namespace Keybord

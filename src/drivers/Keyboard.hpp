@@ -4,10 +4,10 @@
 
 #include "std/types.h"
 
-namespace IRQ {
+namespace Keybord {
 
 struct KeyEvent {
-  u8  code;     // scancode without bit 7
+  u8 code;      // scancode without bit 7
   bool ext;     // came after 0xE0
   bool pressed; // make (true) or break (false)
 };
@@ -16,6 +16,6 @@ void Init();
 bool Poll(KeyEvent &out);
 bool IsDown(u8 code, bool ext = false);
 
-} // namespace IRQ
+} // namespace Keybord
 
 #endif

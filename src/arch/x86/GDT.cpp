@@ -2,7 +2,7 @@
 
 
 
-#include "GDT.hpp"
+#include "arch/x86/GDT.hpp"
 #include "std/types.h"
 
 
