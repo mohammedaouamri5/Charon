@@ -1,5 +1,5 @@
 #include "terminal.hpp"
-#include "VGA.hpp"
+#include "drivers/VGA.hpp"
 #include "std/string.h"
 
 // A row of blanks in the given attribute (used when new output scrolls in).

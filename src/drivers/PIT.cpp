@@ -29,9 +29,9 @@
 ================================================================================
 */
 
-#include "PIT.hpp"
-#include "IDT.hpp"
-#include "PIC.hpp"
+#include "drivers/PIT.hpp"
+#include "arch/x86/IDT.hpp"
+#include "drivers/PIC.hpp"
 #include "std/io.hpp"
 
 namespace {

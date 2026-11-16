@@ -2,7 +2,7 @@
 
 #ifndef VGA_THEMES
 #define VGA_THEMES
-#include "VGA.hpp"
+#include "drivers/VGA.hpp"
 namespace VGA {
 namespace DAC {
 namespace THEMES {

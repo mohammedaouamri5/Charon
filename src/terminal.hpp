@@ -1,7 +1,7 @@
 #ifndef TERMINAL_HPP
 #define TERMINAL_HPP
 
-#include "VGA.hpp"
+#include "drivers/VGA.hpp"
 #include "std/struct/ring.hpp"
 #include "std/struct/stack.hpp"
 

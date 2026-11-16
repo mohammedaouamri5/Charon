@@ -178,8 +178,8 @@
 
 // VGA.cpp
 
-#include "VGA.hpp"
-#include "VGA_themes.hpp"
+#include "drivers/VGA.hpp"
+#include "drivers/VGA_themes.hpp"
 #include "std/io.hpp"
 #include "std/types.h"
 

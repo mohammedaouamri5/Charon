@@ -42,8 +42,8 @@
 ================================================================================
 */
 
-#include "Keyboard.hpp"
-#include "IDT.hpp"
+#include "drivers/Keyboard.hpp"
+#include "arch/x86/IDT.hpp"
 #include "drivers/PS2.hpp"
 #include "std/struct/ring.hpp"
 #include "std/types.h"

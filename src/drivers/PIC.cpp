@@ -72,7 +72,7 @@
 ================================================================================
 */
 
-#include "PIC.hpp"
+#include "drivers/PIC.hpp"
 #include "std/io.hpp"
 
 namespace {
