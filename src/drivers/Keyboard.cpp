@@ -1,6 +1,6 @@
 /*
 ================================================================================
- Keyboard.cpp - PS/2 set-1 keyboard driver: IRQ1, event queue, key state
+ Keyboard.cpp - PS/2 set-2 keyboard driver: IRQ1, event queue, key state
 ================================================================================
 
  PORTS
@@ -8,14 +8,15 @@
      0x60  keyboard data register (read one scancode per IRQ1)
      0x64  controller status (not used: the IRQ already tells us data is ready)
 
- SCANCODING (set-1)
+ SCANCODING (set-2)
  ------------------
- Every key press ("make") sends one byte; its release ("break") sends the
- same byte with bit 7 set. Extended keys (arrows, right modifiers, ...) come
- as a 0xE0 escape byte first, then the real scancode. The escape byte
- arrives as its own IRQ1, so the handler latches it in `ext`, waits for the
- next byte, then clears the latch. Nesting is impossible: IF is cleared
- while the handler runs.
+ A press sends one byte; a release sends F0 first, then the same byte.
+ Extended keys (arrows, right modifiers, ...) come as a 0xE0 escape byte
+ first, then the real code (so a release is E0 F0 code). The escape and
+ break bytes arrive as their own IRQ1, so the handler latches them and
+ waits for the next byte. Nesting is impossible: IF is cleared while the
+ handler runs. Unlike set-1, set-2 codes use all 8 bits: there is no
+ bit-7 press/release trick, so the state table is [2][256].
 
  DESIGN
  ------
@@ -31,7 +32,9 @@
 
  NOTES
  -----
- - No controller translation / set-2 handling: works with QEMU defaults.
+ - No controller translation: the controller must feed raw set-2 bytes.
+ - Pause key: its 8-byte E1 burst is not swallowed; stray bytes may slip
+   through as spurious events.
  - Ring capacity: if nobody polls long enough, Push overwrites the oldest
    events rather than dropping new ones.
 
@@ -41,30 +44,37 @@
 
 #include "Keyboard.hpp"
 #include "IDT.hpp"
+#include "drivers/PS2.hpp"
 #include "std/struct/ring.hpp"
-#include "std/struct/irqsave.hpp"
-#include "std/io.hpp"
+#include "std/types.h"
 
 namespace {
 
-constexpr u16 dataPort = 0x60;
 
-Ring<IRQ::KeyEvent, 64> events;
-volatile bool down[2][128];
+SPSCRing<IRQ::KeyEvent, 64> events;
+volatile bool down[2][256];
 
-// IRQ1 handler: no guard needed, IF is already cleared on entry.
 void onIRQ1() {
-  static bool ext = false;
-  u8 sc = io::inb(dataPort);
-  if (sc == 0xE0) {
-    ext = true; // escape prefix: the next byte carries the real code
-    return;
+
+  static bool ext = false; 
+  static bool rel = false; 
+  u8 data;
+  u8 status;
+  if (PS2::Pull(data, status) != PS2::Err::OK) {
+    return; // empty buffer or a mouse byte: nothing keyboard-ish to do
   }
-  bool pressed = !(sc & 0x80);
-  u8 code = sc & 0x7F;
-  down[ext][code] = pressed;
-  events.Push({code, ext, pressed});
+  if (data == 0xE0) { ext = true; return; }
+  if (data == 0xF0) { rel = true; return; }
+
+  if (data == 0xFA || data == 0xFE || data == 0xAA ||
+      data == 0xFC || data == 0x00 || data == 0xFF) {
+    return; 
+  }
+  bool pressed = !rel;
+  down[ext][data] = pressed;
+  events.Push({data, ext, pressed});
   ext = false;
+  rel = false;
 }
 
 } // namespace
@@ -72,14 +82,10 @@ void onIRQ1() {
 namespace IRQ {
 
 void Init() {
-  // InstallIRQ also unmasks the line (see IDT.cpp), like PIT::Init does.
   InstallIRQ(1, onIRQ1);
 }
 
-bool Poll(KeyEvent &out) {
-  Lock g(1); // the guard lives here so no caller can forget it
-  return events.PopOld(out);
-}
+bool Poll(KeyEvent &out) { return events.Pop(out); }
 
 bool IsDown(u8 code, bool ext) {
   return down[ext][code]; // one byte read: atomic

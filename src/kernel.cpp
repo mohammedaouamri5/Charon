@@ -1,16 +1,61 @@
 #include "GDT.hpp"
+#include "KeyLayout.hpp"
 #include "Keyboard.hpp"
 #include "IDT.hpp"
 #include "PIC.hpp"
 #include "PIT.hpp"
+#include "drivers/PS2.hpp"
 #include "VGA.hpp"
 #include "VGA_themes.hpp"
 #include "std/types.h"
 #include "terminal.hpp"
 
+static void Prompt(Terminal &terminal) {
+  terminal.WriteString("charon> ");
+}
+
+/* exact compare of the first len characters against a known word */
+static bool IsWord(const char *line, u32 len, const char *word) {
+  while (len > 0 && *word != '\0') {
+    if (*line++ != *word++)
+      return false;
+    len--;
+  }
+  return len == 0 && *word == '\0';
+}
+
+/* Run one finished line. */
+static void RunCommand(Terminal &terminal, const char *line, u32 len) {
+  if (len == 0)
+    return;
+  if (IsWord(line, len, "help")) {
+    terminal.WriteString("[ INFO ] commands: help, clear, echo <text>\n");
+    return;
+  }
+  if (IsWord(line, len, "clear")) {
+    terminal.Flush();
+    return;
+  }
+  if (line[0] == 'e' && line[1] == 'c' && line[2] == 'h' && line[3] == 'o') {
+    const char *text = line + 4;
+    u32 rest = len - 4;
+    while (rest > 0 && *text == ' ') { // skip spaces after the word
+      text++;
+      rest--;
+    }
+    terminal.Write(text, rest);
+    terminal.PutChar('\n');
+    return;
+  }
+  terminal.WriteString("[ ERR  ] unknown command\n");
+}
+
 extern "C" {
 void kernel_main(void) {
   /* Initialize terminal interface */
+
+  PIT::Init();
+
 
   GDT_ptr gdt;
   gdt.init();
@@ -18,6 +63,7 @@ void kernel_main(void) {
   idt.init();
   PIC::Remap();
   PIT::Init();
+  u8 ps2err = PS2::Init(); // disables translation: the driver parses set-2
   IRQ::Init(); // unmasks IRQ1 itself, like PIT does for IRQ0
 
   Terminal terminal; // ~6.4 KB on the stack after the shadow removal
@@ -27,23 +73,58 @@ void kernel_main(void) {
   terminal.WriteString("[ INFO ] Hello, World!\n"
                        "[ INFO ] This is my first bootable kernel\n"
                        "[ INFO ] It called Charon o_o\n");
+  terminal.WriteString("[ INFO ] Type 'help' for commands\n");
+  if (ps2err) {
+    terminal.WriteString("[ ERR  ] PS/2 init failed, keyboard may not work\n");
+  }
 
-  /* Keyboard smoke test: echo every queued key event until the queue is
-     empty, then halt and wait for the next IRQ1/IRQ0 to wake us. */
-  terminal.WriteString("[ INFO ] Type! I will echo key events\n");
+  /* Line editor: keys arrive from the IRQ queue, the main loop only
+     renders. Backspace erases, Enter submits. */
+  static char line[80];
+  u32 len = 0;
+  bool caps = false;
+
+  Prompt(terminal);
   for (;;) {
     IRQ::KeyEvent ev;
-    if (IRQ::Poll(ev)) {
-      static const char hex[] = "0123456789abcdef";
-      terminal.WriteString("[ KEY ] 0x");
-      terminal.PutChar(hex[ev.code >> 4]);
-      terminal.PutChar(hex[ev.code & 0xF]);
-      if (ev.ext)
-        terminal.WriteString(" ext");
-      terminal.WriteString(ev.pressed ? " down" : " up");
-      terminal.WriteString("\n");
-    } else {
+    if (!IRQ::Poll(ev)) {
       asm volatile("hlt");
+      continue;
+    }
+
+    /* modifier handling */
+    if (ev.code == 0x58 && ev.pressed) { // Caps Lock is a toggle
+      caps = !caps;
+      continue;
+    }
+    if (!ev.pressed) // ignore releases
+      continue;
+
+    bool shift = IRQ::IsDown(0x12); // Left Shift held
+
+    if (ev.code == 0x66) { // Backspace
+      if (len > 0) {
+        len--;
+        terminal.PutChar('\b');
+        terminal.PutChar(' ');
+        terminal.PutChar('\b');
+      }
+      continue;
+    }
+    if (ev.code == 0x5A) { // Enter
+      terminal.PutChar('\n');
+      RunCommand(terminal, line, len);
+      len = 0;
+      Prompt(terminal);
+      continue;
+    }
+    if (ev.ext) // arrows etc.: ignored for now
+      continue;
+
+    char c = KeyLayout::DecodeKey(ev.code, shift, caps);
+    if (c && len < sizeof(line) - 1) {
+      line[len++] = c;
+      terminal.PutChar(c);
     }
   }
 }
