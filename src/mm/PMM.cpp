@@ -87,7 +87,7 @@ void *Alloc(usize _Nb) {
       if (!used_list.PushFront({result, requested_size})) {
         return NULL;
       }
-      unused_list.SetAt(*pivot, {result, node->item.lenght - requested_size});
+      unused_list.SetAt(*pivot, {node->item.start, node->item.lenght - requested_size});
       return (void*)result;
     }
   }

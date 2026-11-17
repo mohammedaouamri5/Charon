@@ -1,5 +1,5 @@
-#ifndef __PMM_HPP__
-#define __PMM_HPP__
+#ifndef PMM_HPP
+#define PMM_HPP
 
 #include "arch/x86/multiboot.hpp"
 #include "std/struct/FixedList.hpp"
@@ -18,9 +18,9 @@ typedef FixedList<Region, USED_MMAP_SIZE> UsedTable;
 typedef FixedList<Region, UNUSED_MMAP_SIZE> UnUsedTable;
 
 bool Init(multiboot_info *p_info);
-void* Alloc(usize _Nb);
+void *Alloc(usize _Nb);
 const UnUsedTable *UnUsedList();
 const UsedTable *UsedList();
 } // namespace PMM
 
-#endif // !__PMM_HPP__
+#endif // !PMM_HPP
