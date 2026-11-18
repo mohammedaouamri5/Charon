@@ -87,13 +87,50 @@ void *Alloc(usize _Nb) {
       if (!used_list.PushFront({result, requested_size})) {
         return NULL;
       }
-      unused_list.SetAt(*pivot, {node->item.start, node->item.lenght - requested_size});
-      return (void*)result;
+      unused_list.SetAt(*pivot,
+                        {node->item.start, node->item.lenght - requested_size});
+      return (void *)result;
     }
   }
   return NULL;
 }
 
+bool Free(void *ptr) {
+  const u64 addr = static_cast<u64>(reinterpret_cast<usize>(ptr));
+
+  const usize *head = used_list.GetHead();
+  if (!head)
+    return false;
+
+  const UsedTable::Node *first = used_list.GetNode(*head);
+  if (!first)
+    return false;
+
+  if (first->item.start == addr) {
+    Region out;
+    if (!used_list.PopFront(out))
+      return false;
+    return unused_list.PushFront(out) != nullptr;
+  }
+
+  usize prev = *head;
+  while (true) {
+    const UsedTable::Node *p = used_list.GetNode(prev);
+    if (!p || p->next == UsedTable::Nil)
+      return false;
+
+    const UsedTable::Node *victim = used_list.GetNode(p->next);
+    if (victim && victim->item.start == addr) {
+      Region out;
+      if (!used_list.PopAfter(prev, out))
+        return false;
+      return unused_list.PushFront(out) != nullptr;
+    }
+
+    prev = p->next;
+  }
+
+}
 const UnUsedTable *UnUsedList() { return &unused_list; }
 const UsedTable *UsedList() { return &used_list; }
 

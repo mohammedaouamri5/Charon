@@ -10,6 +10,7 @@
 #include "drivers/VGA_themes.hpp"
 #include "mm/PMM.hpp"
 #include "multiboot.hpp"
+#include "std/fmt.hpp"
 #include "std/struct/FixedList.hpp"
 #include "std/struct/bits.hpp"
 #include "std/types.h"
@@ -54,18 +55,10 @@ static void RunCommand(Terminal &terminal, const char *line, u32 len) {
       if (!node)
         continue;
 
-      terminal.WriteString("the index : ");
-      terminal.WriteU64(i);
-      terminal.PutChar('\n');
-      terminal.WriteString("the start  : ");
-      terminal.WriteHex(node->item.start);
-      terminal.PutChar('\n');
-      terminal.WriteString("the length : ");
-      terminal.WriteU64(node->item.lenght);
-      terminal.PutChar('\n');
+      FMT::Sprintf(terminal, "The index  : {d}\n" , i);
+      FMT::Sprintf(terminal, "\tThe start  : {x}\n" , node->item.start);
+      FMT::Sprintf(terminal, "\tThe lenght : {d}\n" , node->item.lenght);
     }
-
-
 
     terminal.WriteString("-------------------USED--------------------\n");
     const PMM::UsedTable *used_frams = PMM::UsedList();
@@ -78,16 +71,9 @@ static void RunCommand(Terminal &terminal, const char *line, u32 len) {
       const PMM::UsedTable::Node *node = used_frams->GetNode(i);
       if (!node)
         continue;
-
-      terminal.WriteString("the index : ");
-      terminal.WriteU64(i);
-      terminal.PutChar('\n');
-      terminal.WriteString("the start  : ");
-      terminal.WriteHex(node->item.start);
-      terminal.PutChar('\n');
-      terminal.WriteString("the length : ");
-      terminal.WriteU64(node->item.lenght);
-      terminal.PutChar('\n');
+      FMT::Sprintf(terminal, "The index  : {d}\n" , i);
+      FMT::Sprintf(terminal, "\tThe start  : {x}\n" , node->item.start);
+      FMT::Sprintf(terminal, "\tThe lenght : {d}\n" , node->item.lenght);
     }
 
     return;
@@ -133,12 +119,9 @@ void kernel_main(u32 magic, multiboot_info *p_info) {
   terminal.Init();
   VGA::DAC::set_palette(0, VGA::DAC::THEMES::monokai_palette, 16);
 
-  terminal.WriteString("[ INFO ] Hello, World!\n"
-                       "[ INFO ] This is my first bootable kernel\n"
-                       "[ INFO ] It called Charon o_o\n");
-  terminal.WriteString("[ INFO ] Type 'help' for commands\n");
   if (ps2err) {
-    terminal.WriteString("[ ERR  ] PS/2 init failed, keyboard may not work\n");
+    FMT::Sprintf(terminal,
+                 "[ ERR  ] PS/2 init failed, keyboard may not work\n");
   }
 
   static char line[80];

@@ -59,7 +59,7 @@ void Terminal::scrollLive() {
   this->above.Push(VGA::scroll_content_up(blankLine(this->attribute)));
 }
 
-// ---- output -----------------------------------------------------------
+// ---- output -----------------------------------------------------------Write
 
 void Terminal::PutChar(char c) {
   this->snapToLive(); // new output while browsing: go back to live first

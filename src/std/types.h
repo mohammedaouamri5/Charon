@@ -21,9 +21,6 @@ typedef __INTPTR_TYPE__   iptr;
 typedef __SIZE_TYPE__     usize;
 typedef __PTRDIFF_TYPE__  isize;
 
-/* Boolean (C23 already has bool as a keyword) */
-#if !defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L
-#endif
 
 #ifndef NULL
 #define NULL nullptr 

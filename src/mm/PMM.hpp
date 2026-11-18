@@ -19,6 +19,7 @@ typedef FixedList<Region, UNUSED_MMAP_SIZE> UnUsedTable;
 
 bool Init(multiboot_info *p_info);
 void *Alloc(usize _Nb);
+bool Free(void *ptr) ;
 const UnUsedTable *UnUsedList();
 const UsedTable *UsedList();
 } // namespace PMM

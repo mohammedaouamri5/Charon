@@ -109,6 +109,20 @@ template <class T, usize N> struct FixedList {
 
     return true;
   }
+  bool PopAfter(usize slot) {
+    if (slot >= N || !used.Test(slot))
+      return false;
+
+    usize victim = data[slot].next;
+    if (victim == Nil)
+      return false;
+
+    data[slot].next = data[victim].next;
+    used.Clear(victim);
+
+    return true;
+  }
+
   const Bitset<N> *GetUsed() const { return &used; }
 
 private:
